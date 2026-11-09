@@ -4,6 +4,9 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/vivandesaii/trackd/internal/config"
@@ -22,8 +25,10 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-	pool, err := database.Connect(context.Background(), cfg.DatabaseURL)
+	pool, err := database.Connect(ctx, cfg.DatabaseURL, cfg.DBMaxAttempts)
 	if err != nil {
 		return err
 	}
