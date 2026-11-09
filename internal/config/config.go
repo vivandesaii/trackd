@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
 )
@@ -18,9 +19,16 @@ func Load() (Config, error) {
 	maxAttempts := 5
 
 	if val, ok := os.LookupEnv("DB_MAX_ATTEMPTS"); ok {
-		if parsed, err := strconv.Atoi(val); err == nil {
-			maxAttempts = parsed
+		// 2. If it IS set, strictly parse it. If it's a typo (like "abc"), fail immediately!
+		parsed, err := strconv.Atoi(val)
+		if err != nil {
+			return Config{}, fmt.Errorf("invalid DB_MAX_ATTEMPTS %q: %w", val, err)
 		}
+		// 3. Prevent 0 or negative numbers which would break the retry loop logic
+		if parsed <= 0 {
+			return Config{}, errors.New("DB_MAX_ATTEMPTS must be greater than 0")
+		}
+		maxAttempts = parsed
 	}
 
 	cfg := Config{
